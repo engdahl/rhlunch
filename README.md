@@ -1,6 +1,6 @@
 # RHLunch
 
-A simple command-line tool to get lunch menus from ISS restaurants.
+A simple command-line tool to get lunch menus from Gourmedia.
 
 ## Installation
 
