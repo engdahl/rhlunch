@@ -6,9 +6,6 @@ from .scraper import ISSMenuScraper
 
 
 @click.command()
-@click.option('--date', '-d', 'target_date', 
-              help='Date to get menu for (YYYY-MM-DD format). Defaults to today.',
-              type=click.DateTime(formats=['%Y-%m-%d']))
 @click.option('--restaurant', '-r', 'restaurant_url',
               default='https://www.iss-menyer.se/restaurants/restaurang-gourmedia',
               help='Restaurant URL to scrape. Defaults to Gourmedia.')
@@ -16,43 +13,39 @@ from .scraper import ISSMenuScraper
               help='Show only vegetarian options.')
 @click.option('--meat-only', '-m', is_flag=True,
               help='Show only meat options.')
-def main(target_date, restaurant_url, vegetarian_only, meat_only):
+@click.option('--week', '-w', is_flag=True,
+              help='Show the whole week menu.')
+def main(restaurant_url, vegetarian_only, meat_only, week):
     """
-    Get today's lunch menu from ISS restaurants.
+    Get lunch menu from ISS restaurants.
     
     Examples:
         lunch                    # Get today's menu
-        lunch -d 2024-01-15     # Get menu for specific date
         lunch -v                # Show only vegetarian options
         lunch -m                # Show only meat options
+        lunch -w                # Show whole week menu
     """
     try:
-        # Convert datetime to date if provided
-        if target_date:
-            target_date = target_date.date()
-        
         # Create scraper instance
         scraper = ISSMenuScraper(restaurant_url)
         
-        # Get menu for the specified date
-        menu = scraper.get_menu_for_day(target_date)
-        
-        # Display the menu
-        display_menu(menu, target_date, vegetarian_only, meat_only)
+        if week:
+            # Get menu for the whole week
+            weekly_menu = scraper.get_weekly_menu()
+            display_weekly_menu(weekly_menu, vegetarian_only, meat_only)
+        else:
+            # Get menu for today
+            menu = scraper.get_menu_for_day()
+            display_menu(menu, vegetarian_only, meat_only)
         
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         raise click.Abort()
 
 
-def display_menu(menu, target_date, vegetarian_only, meat_only):
+def display_menu(menu, vegetarian_only, meat_only):
     """Display the menu in a formatted way."""
-    if target_date:
-        date_str = target_date.strftime('%A, %B %d, %Y')
-    else:
-        date_str = "Today"
-    
-    click.echo(f"\n🍽️  Lunch Menu for {date_str}")
+    click.echo(f"\n🍽️  Lunch Menu for Today")
     click.echo("=" * 50)
     
     # Show vegetarian options
@@ -69,11 +62,57 @@ def display_menu(menu, target_date, vegetarian_only, meat_only):
     
     # Handle case where no menu items found
     if not menu.get('vegetarian') and not menu.get('meat'):
-        click.echo("\n❌ No menu items found for this date.")
+        click.echo("\n❌ No menu items found for today.")
         click.echo("This might be because:")
         click.echo("  • It's a weekend (restaurant might be closed)")
         click.echo("  • The menu hasn't been updated yet")
         click.echo("  • There was an issue scraping the website")
+    
+    click.echo()
+
+
+def display_weekly_menu(weekly_menu, vegetarian_only, meat_only):
+    """Display the weekly menu in a formatted way."""
+    click.echo(f"\n🍽️  Weekly Lunch Menu")
+    click.echo("=" * 50)
+    
+    day_names = {
+        'måndag': 'Monday',
+        'tisdag': 'Tuesday', 
+        'onsdag': 'Wednesday',
+        'torsdag': 'Thursday',
+        'fredag': 'Friday',
+        'lördag': 'Saturday',
+        'söndag': 'Sunday'
+    }
+    
+    for day_key, day_name in day_names.items():
+        if day_key in weekly_menu:
+            menu = weekly_menu[day_key]
+            
+            # Skip if no menu items and it's a weekend
+            if not menu.get('vegetarian') and not menu.get('meat'):
+                if day_key in ['lördag', 'söndag']:
+                    continue  # Skip empty weekends
+            
+            click.echo(f"\n📅 {day_name}")
+            click.echo("-" * 20)
+            
+            # Show vegetarian options
+            if not meat_only and menu.get('vegetarian'):
+                click.echo("🥬 Vegetarian:")
+                for item in menu['vegetarian']:
+                    click.echo(f"  • {item}")
+            
+            # Show meat options
+            if not vegetarian_only and menu.get('meat'):
+                click.echo("🥩 Meat:")
+                for item in menu['meat']:
+                    click.echo(f"  • {item}")
+            
+            # Show message if no items found
+            if not menu.get('vegetarian') and not menu.get('meat'):
+                click.echo("  ❌ No menu available")
     
     click.echo()
 

@@ -50,6 +50,25 @@ class ISSMenuScraper:
         day_name = day_names[day_of_week]
         return weekly_menu.get(day_name, {'vegetarian': [], 'meat': []})
     
+    def get_weekly_menu(self) -> Dict[str, Dict[str, List[str]]]:
+        """
+        Get the menu for the whole week.
+        
+        Returns:
+            Dictionary with days as keys and menu items for each day.
+        """
+        try:
+            response = self.session.get(self.restaurant_url, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+        except Exception as e:
+            raise Exception(f"Failed to fetch menu: {e}")
+        
+        # Extract the weekly menu from HTML
+        weekly_menu = self._extract_weekly_menu(soup)
+        
+        return weekly_menu
+    
     def _extract_weekly_menu(self, soup: BeautifulSoup) -> Dict[str, Dict[str, List[str]]]:
         """Extract the weekly menu from the HTML."""
         weekly_menu = {}

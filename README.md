@@ -28,12 +28,6 @@ Get today's lunch menu:
 lunch
 ```
 
-Get menu for a specific date:
-
-```bash
-lunch -d 2024-01-15
-```
-
 Show only vegetarian options:
 
 ```bash
@@ -44,6 +38,12 @@ Show only meat options:
 
 ```bash
 lunch -m
+```
+
+Show the whole week menu:
+
+```bash
+lunch -w
 ```
 
 ## Example Output
