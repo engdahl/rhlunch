@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rhlunch"
+version = "1.0.0"
+description = "A CLI tool to scrape lunch menus from ISS restaurants"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Daniel Engdahl", email = "daniel@example.com"}
+]
+keywords = ["lunch", "menu", "scraper", "cli", "iss", "restaurant"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Utilities",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "click>=8.1.0",
+    "python-dateutil>=2.8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/engdahl/rhlunch"
+Repository = "https://github.com/engdahl/rhlunch"
+Issues = "https://github.com/engdahl/rhlunch/issues"
+
+[project.scripts]
+lunch = "gourmediascraper.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gourmediascraper*"]
