@@ -138,7 +138,6 @@ pip install -e .
 ```
 
 This installs the `lunch` command globally on your system.
-NOTE: You need to have python installed either locally or in a virtual environment.
 
 ### 🍽️ 4. Usage
 
