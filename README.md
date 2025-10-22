@@ -19,7 +19,10 @@ pip install -e .
 ```
 
 This installs the `lunch` command globally on your system.
-NOTE: You need to have python installed either locally or in a virtual environment.
+
+**Requirements:**
+
+- Python 3.8 or higher
 
 ## Usage
 
@@ -45,6 +48,12 @@ Show the whole week menu:
 
 ```bash
 lunch -w
+```
+
+Enable debug logging to troubleshoot issues:
+
+```bash
+lunch -d
 ```
 
 ## Example Output
