@@ -2,6 +2,33 @@
 
 A simple command-line tool to get lunch menus from Gourmedia.
 
+## 🥱 Easiest way to run
+
+Install Homebrew (you probably already have this). Run:
+```bash
+brew install uv
+```
+
+Then just run:
+```bash
+uvx --from git+https://github.com/engdahl/rhlunch lunch
+```
+
+Voila, lunch is served!
+
+```
+🍽️  Lunch Menu for Friday, October 31, 2025
+==================================================
+
+🥬 Vegetarian Options:
+  • Sheperds pie vegan,svamp,sojafärs,pumpa samt persiljeyoghurt
+
+🥩 Meat Options:
+  • Tonkatsukyckling med chilibearnaise,kålsallad samt stekt sesampotatis
+```
+
+---
+
 ## 🧩 Installation
 
 Follow these steps to set up **Python**, **pip**, and a **virtual environment** on your system.  
