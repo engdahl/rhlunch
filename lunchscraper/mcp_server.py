@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import Optional, List, Dict, Any
 from mcp.server.fastmcp import FastMCP
 
-from .iss_scraper import ISSMenuScraper
+from .nordrest_scraper import NordrestMenuScraper
 from .kvartersmenyn_scraper import KvartersmenynsMenuScraper
 from .nordrest_scraper import NordrestMenuScraper
 
@@ -16,7 +16,7 @@ RESTAURANTS = {
     'gourmedia': {
         'name': 'Gourmedia',
         'type': 'nordrest',
-        'url': 'https://www.nordrest.se/restaurang/gourmedia/#meny'
+        'url': 'https://www.nordrest.se/restaurang/gourmedia/'
     },
     'filmhuset': {
         'name': 'Filmhuset',
@@ -25,9 +25,9 @@ RESTAURANTS = {
     },
     'karavan': {
         'name': 'Karavan',
-        'type': 'kvartersmenyn',
-        'url': 'https://karavan.kvartersmenyn.se/'
-    }
+        'type': 'nordrest',
+        'url': 'https://www.nordrest.se/restaurang/karavan/'
+    },
 }
 
 
@@ -37,10 +37,9 @@ def _create_scraper(restaurant_key: str):
     if not config:
         raise ValueError(f"Unknown restaurant: {restaurant_key}")
 
-    if config['type'] == 'iss':
-        return ISSMenuScraper(
+    if config['type'] == 'nordrest':
+        return NordrestMenuScraper(
             restaurant_url=config['url'],
-            restaurant_id=config['id'],
             restaurant_name=config['name']
         )
     elif config['type'] == 'kvartersmenyn':

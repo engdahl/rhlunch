@@ -1,10 +1,10 @@
-"""Web scraper for Nordrest restaurant menus (WordPress/Elementor)."""
+"""Web scraper for Nordrest restaurant menus (via Castit menu widget)."""
 
+import re
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, date
+from datetime import date
 from typing import Dict, List, Optional
-import re
 import logging
 from .base_scraper import BaseMenuScraper
 from .dish_classifier import DishClassifier
@@ -35,78 +35,56 @@ class NordrestMenuScraper(BaseMenuScraper):
         except Exception as e:
             raise Exception(f"Failed to fetch menu page: {e}")
 
-    def _parse_weekly_menu(self, soup: BeautifulSoup) -> Dict[str, Dict[str, List[str]]]:
-        """Parse the weekly menu from the page."""
-        weekly_menu = {}
+    def _extract_dishes_from_section(self, section) -> List[str]:
+        """Extract dish strings from a castit-day or week-specials section."""
+        dishes = []
+        for dish_div in section.find_all('div', class_='castit-dish'):
+            title_el = dish_div.find('div', class_='castit-dish__title')
+            desc_el = dish_div.find('div', class_='castit-dish__desc')
+            if not title_el:
+                continue
+            dish_text = title_el.get_text(strip=True)
+            if desc_el:
+                desc_text = desc_el.get_text(strip=True)
+                if desc_text:
+                    dish_text = f"{dish_text}, {desc_text}"
+            if dish_text and len(dish_text) >= 5:
+                dishes.append(dish_text)
+        return dishes
 
-        # The menu is structured as accordion items with class 'accordion-item weekday-item'
-        # Each day is in an accordion-header div
-        day_names = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag']
-        
-        # Find all accordion items
-        accordion_items = soup.find_all('div', class_='accordion-item')
-        
-        for item in accordion_items:
-            # Check if this is a weekday item
-            if 'weekday-item' not in item.get('class', []):
+    def _parse_weekly_menu(self, soup: BeautifulSoup) -> Dict[str, Dict[str, List[str]]]:
+        """Parse the weekly menu from the Castit widget on the page."""
+        weekly_menu = {}
+        swedish_weekdays = {'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag', 'söndag'}
+
+        # Collect week-special dishes (e.g. "Veckans rätt") to append to every day
+        weekly_special_dishes: List[str] = []
+        for day_section in soup.find_all('section', class_='castit-day'):
+            if 'castit-week-specials-column' in day_section.get('class', []):
+                weekly_special_dishes = self._extract_dishes_from_section(day_section)
+                logger.debug(f"Found {len(weekly_special_dishes)} weekly special dish(es)")
+                break
+
+        for day_section in soup.find_all('section', class_='castit-day'):
+            classes = day_section.get('class', [])
+            if 'castit-week-specials-column' in classes:
                 continue
-            
-            # Find the day header
-            header = item.find('div', class_='accordion-header')
-            if not header:
+
+            # Get the Swedish day name from the title span's data-sv attribute
+            title_span = day_section.find('span', class_='castit-i18n', attrs={'data-sv': True})
+            if not title_span:
                 continue
-            
-            day_text = header.get_text(strip=True)
-            
-            # Check if this is a valid day name
-            day_found = None
-            for day in day_names:
-                if day.lower() == day_text.lower():
-                    day_found = day
-                    break
-            
-            if not day_found:
+            day_sv = title_span.get('data-sv', '').strip().lower()
+            if day_sv not in swedish_weekdays:
                 continue
-            
-            # Find the accordion body/content
-            body = item.find('div', class_='accordion-body') or item.find('div', class_='accordion-content')
-            if not body:
-                # If no accordion-body, get all text after the header
-                body = item
-            
-            # Extract dishes from the body
-            dishes_text = body.get_text(separator='\n')
-            dishes = []
-            
-            for line in dishes_text.split('\n'):
-                line = line.strip()
-                if not line:
-                    continue
-                
-                # Skip the day name if it appears again
-                if line.lower() == day_found.lower():
-                    continue
-                
-                # Skip lines that are just numbers (prices)
-                if re.match(r'^\d+\.?\d*$', line):
-                    continue
-                
-                # Skip very short lines
-                if len(line) < 3:
-                    continue
-                
-                dishes.append(line)
-            
-            # Parse the dishes
+
+            dishes = self._extract_dishes_from_section(day_section) + weekly_special_dishes
+
             if dishes:
                 menu_items = self._parse_dishes(dishes)
-                # Check for menu items (either in 'menu' key or in categorized keys)
                 if menu_items.get('menu') or menu_items.get('vegetarian') or menu_items.get('fish') or menu_items.get('meat'):
-                    weekly_menu[day_found.lower()] = menu_items
-                    if menu_items.get('menu'):
-                        logger.debug(f"Parsed {day_found}: {len(menu_items['menu'])} items")
-                    else:
-                        logger.debug(f"Parsed {day_found}: {len(menu_items.get('vegetarian', []))} veg, {len(menu_items.get('fish', []))} fish, {len(menu_items.get('meat', []))} meat")
+                    weekly_menu[day_sv] = menu_items
+                    logger.debug(f"Parsed {day_sv}: {len(menu_items.get('menu', []))} items")
 
         return weekly_menu
 
@@ -165,7 +143,7 @@ class NordrestMenuScraper(BaseMenuScraper):
         Get the menu for a specific day.
 
         Args:
-            target_date: The date to get menu for. If None, uses today.
+            target_date: The date to get the menu for. Defaults to today.
 
         Returns:
             Dictionary with 'vegetarian', 'fish', and 'meat' menu items for the day.
@@ -190,10 +168,10 @@ class NordrestMenuScraper(BaseMenuScraper):
             return {'vegetarian': [], 'fish': [], 'meat': []}
 
         day_name = day_names[day_of_week]
-        logger.debug(f"Looking for menu for day: {day_name}")
+        logger.debug(f"Looking for menu for: {day_name}")
 
         if day_name not in weekly_menu:
-            raise Exception(f"No menu found for {day_name}")
+            raise Exception(f"No menu found for {day_name}. Available days: {', '.join(weekly_menu.keys())}")
 
         return weekly_menu[day_name]
 
@@ -202,7 +180,7 @@ class NordrestMenuScraper(BaseMenuScraper):
         Get the menu for the whole week.
 
         Returns:
-            Dictionary with days as keys and menu items for each day.
+            Dictionary with Swedish day names as keys and categorised menu items per day.
         """
         logger.debug(f"Fetching weekly menu for {self.restaurant_name}")
 
@@ -213,4 +191,3 @@ class NordrestMenuScraper(BaseMenuScraper):
             raise Exception(f"Failed to fetch menu: {e}")
 
         return weekly_menu
-
